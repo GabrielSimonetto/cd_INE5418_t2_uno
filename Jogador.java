@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.LinkedList;
 
 import java.util.Collections;
+// import javafx.util.Pair;
+
 
 public class Jogador implements Receiver {
     // Fix
@@ -32,26 +34,64 @@ public class Jogador implements Receiver {
 
     JChannel channel;
     String user_name=System.getProperty("user.name", "n/a");
-    final List<String> state=new LinkedList<>();
+    final List<String> state=new LinkedList<>(); // TODO: change this to what feels best.
+    // key == baralho, value == IDJogador atual
+    // final Pair<List<Carta>, String> state = new Pair<>();
+    // Integer key = pair.getKey();
+    // String value = pair.getValue();
 
     private final String cores[] = {"Verde", "Vermelho", "Azul", "Amarelo"};
     private List<Carta> mao;
     public List<Carta> baralho;
 
-    private Boolean aptoJogar = false;
+    // TODO Implement this (allow player to enter only in the first phase)
+    // private Boolean aptoJogar = false;
 
     private void start() throws Exception {
-        mao = new LinkedList<Carta>();
-        baralho = new LinkedList<Carta>();
-        criarBaralho();
-        // for (Carta c : baralho) { System.out.println(c.toString()); }
-
-
         channel=new JChannel().setReceiver(this);
         channel.connect("UnoParty");
         channel.getState(null, 10000);
+
+        // if view==1 ou state==null
+        // isCoordenador = True
+
+        if (Util.isCoordinator(currentChannel.getAddress)) {
+            baralho = new LinkedList<Carta>();
+            criarBaralho();
+        }
+
+        if state == null {
+            // O lider recebe estado null e cria o baralho
+            // setState(baralho)
+        }
+
+        mao = new LinkedList<Carta>();
+        // mao = inicializarMao();       
+        inicializarMao(); // changes mao inplace.   
+
         eventLoop();
         channel.close();
+    }
+
+    // private LinkedList<Carta> inicializarMao() {
+    private void inicializarMao() {
+        int tamanhoMao = 5;
+
+        for (int i=0; i<tamanhoMao; i++) {
+            this.mao.add(drawNewCard())
+        }
+    }
+
+    // private Carta drawNewCard() {
+    //     return this.baralho.pop()
+    // }
+
+    private Carta drawNewCard() {
+        String command = "drawCard";
+        Message msg=new ObjectMessage(null, command);
+        channel.send(msg); // aviso pra geral discartar uma carta
+
+        return // eu puxo do meu proprio baralho
     }
 
     private void criarBaralho() {
@@ -77,6 +117,10 @@ public class Jogador implements Receiver {
         synchronized(state) {
             state.add(line);
         }
+
+        // if "drawCard" && IamLeaderIownTheBaralho{
+        //     return drawCard
+        // }
     }
 
     public void getState(OutputStream output) throws Exception {
@@ -86,6 +130,10 @@ public class Jogador implements Receiver {
     }
 
     public void setState(InputStream input) throws Exception {
+        // Tem um historico de mensagens
+        // e a gente quer passar: baralho - de quem eh o turno.
+        // List<Carta> + TypeID -- state
+
         List<String> list=Util.objectFromStream(new DataInputStream(input));
         synchronized(state) {
             state.clear();
@@ -97,14 +145,24 @@ public class Jogador implements Receiver {
 
     private void eventLoop() {
         BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
+        // tarefas:
+        // começar o jogo --> semaforo?
+        // circular entre jogadores
+        //     jogador joga carta OU pesca uma carta
+        //     checa se jogador nao tem cartas e encerra
+
         while(true) {
             try {
-                System.out.print("> "); System.out.flush();
+                System.out.print("> "); 
+                System.out.flush();
+                // Fluxo de enviar mensagem
                 String line=in.readLine().toLowerCase();
                 if(line.startsWith("quit") || line.startsWith("exit")) {
                     break;
                 }
                 line="[" + user_name + "] " + line;
+
+                // cria a mensagem e envia pro canal todo
                 Message msg=new ObjectMessage(null, line);
                 channel.send(msg);
             }
@@ -113,17 +171,18 @@ public class Jogador implements Receiver {
         }
     }
 
-    private void esperaInicioLoop() {
-        BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
-        while(true) {
-            try {
-                synchronized(state) {
+    // TODO: aptoJogar shenanigans esperando roles.
+    // private void esperaInicioLoop() {
+    //     BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
+    //     while(true) {
+    //         try {
+    //             synchronized(state) {
 
 
-                }
-            }
-        }
-    }
+    //             }
+    //         }
+    //     }
+    // }
 
 
     public static void main(String[] args) throws Exception {
