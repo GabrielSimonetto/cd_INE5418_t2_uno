@@ -23,8 +23,14 @@ public class Jogador implements Receiver {
             this.cor = cor;
         }
 
-        public int getNumero() { return this.numero; }
-        public String getCor() { return this.cor; }
+        public Carta(String definicao) {
+            String separados[] = definicao.split(" ");
+            this.numero = Integer.parseInt(separados[0]);
+            this.cor    = separados[1];
+        }
+
+        public int    getNumero() { return this.numero; }
+        public String getCor()    { return this.cor; }
 
         public String toString() {
             return (this.numero + " " + this.cor);
@@ -43,6 +49,7 @@ public class Jogador implements Receiver {
     private final String cores[] = {"Verde", "Vermelho", "Azul", "Amarelo"};
     private List<Carta> mao;
     public List<Carta> baralho;
+    public List<Carta> descarte;
 
     // TODO Implement this (allow player to enter only in the first phase)
     // private Boolean aptoJogar = false;
@@ -52,22 +59,19 @@ public class Jogador implements Receiver {
         channel.connect("UnoParty");
         channel.getState(null, 10000);
 
-        // if view==1 ou state==null
-        // isCoordenador = True
-
-        if (Util.isCoordinator(currentChannel.getAddress)) {
-            baralho = new LinkedList<Carta>();
+        if (Util.isCoordinator(channel)) {
+            baralho  = new LinkedList<Carta>();
+            descarte = new LinkedList<Carta>();
             criarBaralho();
-        }
-
-        if state == null {
+            prepararState();
             // O lider recebe estado null e cria o baralho
             // setState(baralho)
         }
 
+
         mao = new LinkedList<Carta>();
-        // mao = inicializarMao();       
-        inicializarMao(); // changes mao inplace.   
+        // mao = inicializarMao();
+        inicializarMao(); // changes mao inplace.
 
         eventLoop();
         channel.close();
@@ -78,7 +82,7 @@ public class Jogador implements Receiver {
         int tamanhoMao = 5;
 
         for (int i=0; i<tamanhoMao; i++) {
-            this.mao.add(drawNewCard())
+            this.mao.add(drawNewCard());
         }
     }
 
@@ -89,9 +93,10 @@ public class Jogador implements Receiver {
     private Carta drawNewCard() {
         String command = "drawCard";
         Message msg=new ObjectMessage(null, command);
-        channel.send(msg); // aviso pra geral discartar uma carta
+        // channel.send(msg); // aviso pra geral descartar uma carta
 
-        return // eu puxo do meu proprio baralho
+        // return // eu puxo do meu proprio baralho
+        return new Carta("1 a");
     }
 
     private void criarBaralho() {
@@ -129,6 +134,26 @@ public class Jogador implements Receiver {
         }
     }
 
+    public void prepararState() throws Exception {
+        String baralhoStr = "";
+        for (Carta carta : baralho) {
+            baralhoStr += carta.toString() + ",";
+        }
+        String descarteStr = "";
+        for (Carta carta : descarte) {
+            descarteStr += carta.toString() + ",";
+        }
+        int turno = 1;
+        String turnoStr = Integer.toString(turno);
+
+        synchronized(state) {
+            state.clear();
+            state.add(baralhoStr);
+            state.add(descarteStr);
+            state.add(turnoStr);
+        }
+    }
+
     public void setState(InputStream input) throws Exception {
         // Tem um historico de mensagens
         // e a gente quer passar: baralho - de quem eh o turno.
@@ -153,7 +178,7 @@ public class Jogador implements Receiver {
 
         while(true) {
             try {
-                System.out.print("> "); 
+                System.out.print("> ");
                 System.out.flush();
                 // Fluxo de enviar mensagem
                 String line=in.readLine().toLowerCase();
