@@ -17,7 +17,7 @@ public class Carta {
     }
 
     public Boolean combina(Carta c) {
-        return (c.numero == this.numero) || (c.cor == this.cor);
+        return (c.numero == this.numero) || (c.cor.compareTo(this.cor) == 0);
     }
 
     public int    getNumero() { return this.numero; }

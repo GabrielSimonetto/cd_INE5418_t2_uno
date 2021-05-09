@@ -127,8 +127,55 @@ public class Jogador implements Receiver {
         return false;
     }
 
+    public Boolean cartaInvalida(int indice_carta) {
+        Carta cartaTopo = descarte.getLast();
+        if (indice_carta < 0 || indice_carta >= mao.size() ) {
+            //todo maybe do it under
+            return true;
+        }
+        Carta cartaJogada = mao.get(indice_carta);
+        if (cartaTopo.combina(cartaJogada)) {
+            return false;
+        }
+        return true;
+    }
+
     public void viewAccepted(View new_view) {
-        System.out.println("** view: " + new_view);
+        // System.out.println("** OLD VIEW view: " + view);
+
+        // Boolean pessoa_saiu = (
+        //     (view != null) &&
+        //     new_view.getMembers().size() < view.getMembers().size()
+        // );
+        // // Boolean turno_da_pessoa_que_saiu = turno == i
+
+        // // if (pessoa_saiu && turno_da_pessoa_que_saiu) {
+        // if (pessoa_saiu) {
+        //     for (int i=0; i<view.getMembers().size(); i++) {
+        //         System.out.println("i : " + i);
+        //         System.out.println("view.getMembers().get(i) : " + view.getMembers().get(i));
+        //         System.out.println("new_view.getMembers().get(i) : " + new_view.getMembers().get(i));
+        //         System.out.println("(view.getMembers().get(i) != new_view.getMembers().get(i)) : " + (view.getMembers().get(i) != new_view.getMembers().get(i)));
+        //         // System.out.println("view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0 : " + (view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0);
+
+        //         // ultima pessoa saiu.
+        //         if (new_view.getMembers().size() <= i) {
+        //             System.out.println("turno A : " + turno);
+        //             turno = 0;
+        //             System.out.println("turno B : " + turno);
+        //             break;
+        //         }
+        //         // outros casos.
+        //         // if (view.getMembers().get(i) != new_view.getMembers().get(i)) {
+        //         if (view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0) {
+        //             System.out.println("turno C : " + turno);
+        //             turno = i;
+        //             System.out.println("turno D : " + turno);
+        //             break;
+        //         }
+        //     }
+        // }
+        System.out.println("** NEW VIEW view: " + new_view);
         view = new_view;
     }
 
@@ -175,7 +222,7 @@ public class Jogador implements Receiver {
                 else if (conteudo.contains(cmdFimTurno)) {
                     turno = (turno + 1) % view.getMembers().size();
                     System.out.println("Fim de turno, proximo turno: "+turno);
-                    System.out.println(idMeuTurno);
+                    System.out.println(idMeuTurno); //TODO colocar mensagem bonitinha com operador ternario
                 }
             }
         }
@@ -260,11 +307,12 @@ public class Jogador implements Receiver {
             // System.out.println(isMeuTurno());
             if (isMeuTurno()) {
                 // print mao
+                System.out.println("\nCarta Topo "+descarte.getLast().toString());
                 System.out.print("Mao: ");
                 mao.forEach(System.out::println);
                 // print Possibilidades
                 System.out.print("Possibilidades: ");
-                System.out.print(possivelJogarCarta()? "jogar " : " ");
+                System.out.print(possivelJogarCarta() ? "jogar " : " ");
                 System.out.print("comprar ");
                 System.out.println("fimturno");
 
@@ -274,16 +322,17 @@ public class Jogador implements Receiver {
                 if(line.startsWith("quit") || line.startsWith("exit")) { break; }
 
 
-                if (line.contains("jogar")) {
-                    System.out.println("Carta Topo "+descarte.getLast().toString());
+                if (line.contains("jogar") && possivelJogarCarta()) {
+                    System.out.println("\nCarta Topo "+descarte.getLast().toString());
                     System.out.println("Mao:");
                     for (int i=0; i<mao.size(); i++) {
                         System.out.println(i+": "+mao.get(i).toString());
                     }
                     // pega o indice da carta da mao
                     int ind = -1;
-                    while (ind < 0 || ind > mao.size()) {
+                    while (cartaInvalida(ind)) {
                         // line=in.readLine();
+                        System.out.println("Digite uma carta valida");
                         line = cnsl.readLine();
                         ind = Integer.parseInt(line);
                     }

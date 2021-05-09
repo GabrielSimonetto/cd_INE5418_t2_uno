@@ -26,3 +26,23 @@ Se voce quiser rodar algo ja compilado, use `make run`
     - [ ] o que eh um bom ponto, como diabos gira entre os jogadores
 
 
+## problemas
+
+[x] - o primeiro jogador nao ve o topo do discarte.
+- checagem de carta a ser jogada no monte
+    [x] - nao deixar entrar na mao se nao tiver nada
+    [x] - se entrar na mao soh deixar jogar as cartas validas.
+    [x] - topo era 8 verde, nao identificava que 2 verde era uma entrada valida.
+        R: comparação bosta do java.
+
+- Consertar se a pessoa que tem o turno sair. (crasha)
+- Se dono sai e ta na segunda pessoa ela fica com o turno indefinidamente
+
+## ideias
+
+- toda vez que rodar o turno, junto com a mão, mostrar o topo do discarte
+
+- passar turno apos uma unica ação 
+    (tirar fimturno 
+        (mas deixar ele vivo internamente pra debuggar coisas talvez)
+    )
