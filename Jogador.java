@@ -54,9 +54,12 @@ public class Jogador implements Receiver {
 
     private View view;
 
-    private final String cmdComprar  = "Comprar";
-    private final String cmdJogar    = "Jogar";
-    private final String cmdFimTurno = "FimTurno";
+    public int tamanhoInicialMao = 5;
+
+    private final String cmdComprarCarta    = "ComprarCarta";
+    private final String cmdComprarMao      = "ComprarMao";
+    private final String cmdJogar           = "Jogar";
+    private final String cmdFimTurno        = "FimTurno";
 
     // TODO Implement this (allow player to enter only in the first phase)
     // private Boolean aptoJogar = false;
@@ -64,6 +67,7 @@ public class Jogador implements Receiver {
     private void start() throws Exception {
         baralho  = new LinkedList<Carta>();
         descarte = new LinkedList<Carta>();
+        mao      = new LinkedList<Carta>();
         turno = 0;
 
         channel=new JChannel().setReceiver(this);
@@ -75,46 +79,46 @@ public class Jogador implements Receiver {
             prepararState();
         }
 
-        jogarCarta(baralho.get(0));
-
-        mao = new LinkedList<Carta>();
-        // mao = inicializarMao();
-        inicializarMao(); // changes mao inplace.
+        comprarMao();
 
         eventLoop();
         channel.close();
     }
 
-    // private LinkedList<Carta> inicializarMao() {
-    private void inicializarMao() {
-        int tamanhoMao = 5;
-
+    public void comprarMao() {
         for (int i=0; i<tamanhoMao; i++) {
-            this.mao.add(drawNewCard());
+            mao.add(baralho.pop(0));
         }
+        String linha = cmdComprarMao;
+        sendMacro(linha);
     }
 
-    // private Carta drawNewCard() {
-    //     return this.baralho.pop()
-    // }
-
-
-
-
-    private Carta drawNewCard() {
-        String command = "drawCard";
-        Message msg=new ObjectMessage(null, command);
-        // channel.send(msg); // aviso pra geral descartar uma carta
-
-        // return // eu puxo do meu proprio baralho
-        return new Carta("1 a");
+    public void comprarCarta() {
+        if (baralho.size() == 0) {
+            baralho = descarte.clone();
+            descarte.clear();
+            descarte = baralho.pop(baralho.size()-1);
+        }
+        mao.add(baralho.pop(0));
+        String linha = cmdComprarCarta;
+        sendMacro(linha);
     }
 
     public void jogarCarta(Carta carta) {
+        String linha = cmdJogar +" "+ carta.toString();
+        sendMacro(linha);
+    }
+
+    public void acabarTurno() {
+        String linha = cmdFimTurno;
+        sendMacro(linha);
+    }
+
+    private void sendMacro(String linha) {
         try {
-            String linha = cmdJogar + carta.toString();
             Message msg=new ObjectMessage(null, linha);
             channel.send(msg);
+            System.out.println("mandando "+ linha);
         } catch(Exception e) { }
     }
 
@@ -139,18 +143,34 @@ public class Jogador implements Receiver {
     public void receive(Message msg) {
         String conteudo = msg.getObject();
         String line=msg.getSrc() + ": " + conteudo;
+        System.out.println(line);
 
         if (view != null) {
             // acho o id da pessoa q mandou a msg
             int id = view.getMembers().indexOf(msg.getSrc());
             if (id == turno) {
                 // aceito a msg
+                // System.out.println("turno");
                 if (conteudo.contains(cmdJogar)) {
                     // extrair carta da msg
-                    
-                    descarte.add()
+                    String conteudoSplt[] = conteudo.split(" ");
+                    String cartaStr = conteudoSplt[1] + " " + conteudoSplt[2];
+                    descarte.add(new Carta(cartaStr));
+                    System.out.println("Descartado "+descarte.get(descarte.size()-1).toString());
                 }
-                System.out.println(line);
+                else if (conteudo.contains(cmdComprar)) {
+                    System.out.println("nada kkkkkkk");
+
+                    if (baralho.size() == 0) {
+                        baralho = descarte.copy();
+                        descarte.clear();
+                        descarte = baralho.pop(baralho.size()-1);
+                    }
+
+                }
+                else if (conteudo.contains(cmdFimTurno)) {
+                    turno = (turno + 1) % view.getMembers().size();
+                }
             }
         }
 
@@ -232,7 +252,9 @@ public class Jogador implements Receiver {
                 System.out.print("> ");
                 System.out.flush();
                 // Fluxo de enviar mensagem
-                String line=in.readLine().toLowerCase();
+                String line=in.readLine();
+
+
                 if(line.startsWith("quit") || line.startsWith("exit")) {
                     break;
                 }
