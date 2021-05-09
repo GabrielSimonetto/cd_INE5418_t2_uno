@@ -35,8 +35,8 @@ Se voce quiser rodar algo ja compilado, use `make run`
     [x] - topo era 8 verde, nao identificava que 2 verde era uma entrada valida.
         R: comparação bosta do java.
 
-- Consertar se a pessoa que tem o turno sair. (crasha)
-- Se dono sai e ta na segunda pessoa ela fica com o turno indefinidamente
+[x] - Consertar se a pessoa que tem o turno sair. (crasha)
+[x] - Se dono sai e ta na segunda pessoa ela fica com o turno indefinidamente
 
 ## ideias
 

@@ -141,40 +141,35 @@ public class Jogador implements Receiver {
     }
 
     public void viewAccepted(View new_view) {
-        // System.out.println("** OLD VIEW view: " + view);
+        System.out.println("** OLD VIEW view: " + view);
 
-        // Boolean pessoa_saiu = (
-        //     (view != null) &&
-        //     new_view.getMembers().size() < view.getMembers().size()
-        // );
-        // // Boolean turno_da_pessoa_que_saiu = turno == i
+        Boolean pessoa_saiu = (
+            (view != null) &&
+            new_view.getMembers().size() < view.getMembers().size()
+        );
+        if (pessoa_saiu) {
+            Address my_own_address = view.getMembers().get(idMeuTurno);
 
-        // // if (pessoa_saiu && turno_da_pessoa_que_saiu) {
-        // if (pessoa_saiu) {
-        //     for (int i=0; i<view.getMembers().size(); i++) {
-        //         System.out.println("i : " + i);
-        //         System.out.println("view.getMembers().get(i) : " + view.getMembers().get(i));
-        //         System.out.println("new_view.getMembers().get(i) : " + new_view.getMembers().get(i));
-        //         System.out.println("(view.getMembers().get(i) != new_view.getMembers().get(i)) : " + (view.getMembers().get(i) != new_view.getMembers().get(i)));
-        //         // System.out.println("view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0 : " + (view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0);
+            for (int i=0; i<new_view.getMembers().size(); i++) {
+                Address this_member = new_view.getMembers().get(i);
+                if (my_own_address.compareTo(this_member) == 0) {
+                    idMeuTurno = i;
+                }
+            }
 
-        //         // ultima pessoa saiu.
-        //         if (new_view.getMembers().size() <= i) {
-        //             System.out.println("turno A : " + turno);
-        //             turno = 0;
-        //             System.out.println("turno B : " + turno);
-        //             break;
-        //         }
-        //         // outros casos.
-        //         // if (view.getMembers().get(i) != new_view.getMembers().get(i)) {
-        //         if (view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0) {
-        //             System.out.println("turno C : " + turno);
-        //             turno = i;
-        //             System.out.println("turno D : " + turno);
-        //             break;
-        //         }
-        //     }
-        // }
+            for (int i=0; i<view.getMembers().size(); i++) {
+                if (new_view.getMembers().size() <= i) {
+                    turno = 0;
+                    break;
+                }
+                // se der diferente antes quem saiu nao foi o ultimo,
+                // o turno fica igual e encerramos a operação
+                if (view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0) {
+                    break;
+                }
+            }
+        }
+
         System.out.println("** NEW VIEW view: " + new_view);
         view = new_view;
     }
