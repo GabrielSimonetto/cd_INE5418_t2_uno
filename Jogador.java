@@ -1,6 +1,4 @@
 package uno;
-// import INE5418Uno.Carta.*;
-
 
 import org.jgroups.*;
 import org.jgroups.util.Util;
@@ -8,10 +6,9 @@ import org.jgroups.util.Util;
 import java.io.*;
 import java.util.List;
 import java.util.LinkedList;
-
 import java.util.Collections;
-// import javafx.util.Pair;
 
+import java.util.concurrent.Semaphore;
 
 public class Jogador implements Receiver {
     JChannel channel;
@@ -35,12 +32,15 @@ public class Jogador implements Receiver {
     private final String cmdFimTurno            = "FimTurno";
     private final String cmdFimDeJogo           = "FimDeJogo";
 
+    private Semaphore semTurno;
 
     private void start() throws Exception {
         baralho  = new LinkedList<Carta>();
         descarte = new LinkedList<Carta>();
         mao      = new LinkedList<Carta>();
         turno    = 0;
+
+        semTurno = new Semaphore(0);
 
         channel = new JChannel().setReceiver(this);
         channel.connect("UnoParty");
@@ -52,10 +52,10 @@ public class Jogador implements Receiver {
         if (Util.isCoordinator(channel)) {
             criarBaralho();
             prepararState();
+            // primeiro turno precisa liberar o semaforo
+            semTurno.release(1);
         }
 
-        while (! isMeuTurno()) {}
-        comprarMaoInicial();
         eventLoop();
         channel.close();
     }
@@ -227,7 +227,8 @@ public class Jogador implements Receiver {
                     //     channel.getState(null, 10000);
                     // } catch(Exception e) { }
                     System.out.println("Fim de turno, proximo turno: "+turno);
-                    System.out.println(idMeuTurno); //TODO colocar mensagem bonitinha com operador ternario
+                    semTurno.release(1);
+                    // System.out.println(idMeuTurno); //TODO colocar mensagem bonitinha com operador ternario
                 }
                 else if (conteudo.contains(cmdFimDeJogo)) {
                     System.out.println("O jogo acabou! E eu, " + msg.getSrc() + " venci! Muhahah");
@@ -297,19 +298,24 @@ public class Jogador implements Receiver {
         }
 
         System.out.println("received state (" + list.size() + " messages in chat history):");
-        list.forEach(System.out::println);
+        // list.forEach(System.out::println);
+        System.out.println("Baralho : "+list.get(0));
+        System.out.println("Descarte: "+list.get(1));
+        System.out.println("Turno   : "+list.get(2));
     }
 
-    private void eventLoop() {
+    private void eventLoop() throws Exception {
         // BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
 
         Console cnsl = System.console();
 
         while(jogoRodando) {
-            // TODO busy waiting
-            // System.out.println(isMeuTurno());
+            semTurno.acquire(1);
+            while (isMeuTurno()) {
+                if (mao.size() == 0) {
+                    comprarMaoInicial();
+                }
 
-            if (isMeuTurno()) {
                 // print mao
                 System.out.println("\nCarta Topo "+descarte.getLast().toString());
                 System.out.print("Mao: ");

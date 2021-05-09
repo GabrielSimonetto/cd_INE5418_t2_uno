@@ -15,4 +15,4 @@ clean:
 	rm -rf uno
 
 run:
-	java -classpath uno:.:jgroups-5.0.0.Final.jar Jogador.java
+	java -cp uno:.:jgroups-5.0.0.Final.jar Jogador.java
