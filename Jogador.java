@@ -1,4 +1,3 @@
-// package INE5418Uno;
 // import INE5418Uno.Carta.*;
 
 import org.jgroups.*;
@@ -29,6 +28,10 @@ public class Jogador implements Receiver {
             this.cor    = separados[1];
         }
 
+        public Boolean combina(Carta c) {
+            return (c.numero == this.numero) || (c.cor == this.cor);
+        }
+
         public int    getNumero() { return this.numero; }
         public String getCor()    { return this.cor; }
 
@@ -41,25 +44,21 @@ public class Jogador implements Receiver {
     JChannel channel;
     String user_name=System.getProperty("user.name", "n/a");
     final List<String> state=new LinkedList<>(); // TODO: change this to what feels best.
-    // key == baralho, value == IDJogador atual
-    // final Pair<List<Carta>, String> state = new Pair<>();
-    // Integer key = pair.getKey();
-    // String value = pair.getValue();
 
     private final String cores[] = {"Verde", "Vermelho", "Azul", "Amarelo"};
-    private List<Carta> mao;
-    public List<Carta> baralho;
-    public List<Carta> descarte;
-    public int turno;
+    private LinkedList<Carta> baralho;
+    public  LinkedList<Carta> mao;
+    public  LinkedList<Carta> descarte;
 
+    public  int tamanhoInicialMao = 5;
+    private int turno;
+    private int idMeuTurno;
     private View view;
 
-    public int tamanhoInicialMao = 5;
-
-    private final String cmdComprarCarta    = "ComprarCarta";
-    private final String cmdComprarMao      = "ComprarMao";
-    private final String cmdJogar           = "Jogar";
-    private final String cmdFimTurno        = "FimTurno";
+    private final String cmdComprarCarta        = "ComprarCarta";
+    private final String cmdcomprarMaoInicial   = "comprarMaoInicial";
+    private final String cmdJogar               = "Jogar";
+    private final String cmdFimTurno            = "FimTurno";
 
     // TODO Implement this (allow player to enter only in the first phase)
     // private Boolean aptoJogar = false;
@@ -68,48 +67,56 @@ public class Jogador implements Receiver {
         baralho  = new LinkedList<Carta>();
         descarte = new LinkedList<Carta>();
         mao      = new LinkedList<Carta>();
-        turno = 0;
+        turno    = 0;
 
-        channel=new JChannel().setReceiver(this);
+        channel = new JChannel().setReceiver(this);
         channel.connect("UnoParty");
+        if (view != null)
+            idMeuTurno = view.getMembers().size() - 1;
         channel.getState(null, 10000);
 
+        // primeiro a se conectar cria o baralho
         if (Util.isCoordinator(channel)) {
             criarBaralho();
             prepararState();
         }
 
-        comprarMao();
-
+        comprarMaoInicial();
         eventLoop();
         channel.close();
     }
 
-    public void comprarMao() {
-        for (int i=0; i<tamanhoMao; i++) {
-            mao.add(baralho.pop(0));
+    public void comprarMaoInicial() {
+        for (int i=0; i<tamanhoInicialMao; i++) {
+            mao.add(baralho.pollFirst());
         }
-        String linha = cmdComprarMao;
+        String linha = cmdcomprarMaoInicial;
         sendMacro(linha);
     }
 
     public void comprarCarta() {
         if (baralho.size() == 0) {
-            baralho = descarte.clone();
+            // pega a carta do topo do descarte
+            Carta cartaTopo = descarte.pollLast();
+            // passa o descarte pro baralho
+            baralho.addAll(descarte);
             descarte.clear();
-            descarte = baralho.pop(baralho.size()-1);
+            // adiciona ao descarte a carta topo
+            descarte.add(cartaTopo);
         }
-        mao.add(baralho.pop(0));
+        mao.add(baralho.pollFirst());
         String linha = cmdComprarCarta;
         sendMacro(linha);
     }
 
-    public void jogarCarta(Carta carta) {
+    public void jogarCarta(int idMao) {
+        Carta carta = mao.get(idMao);
+        mao.remove(idMao);
         String linha = cmdJogar +" "+ carta.toString();
         sendMacro(linha);
     }
 
-    public void acabarTurno() {
+    public void passarTurno() {
         String linha = cmdFimTurno;
         sendMacro(linha);
     }
@@ -133,11 +140,27 @@ public class Jogador implements Receiver {
             }
         }
         Collections.shuffle(baralho);
+        // adiciona a primeira do baralho como o topo do descarte
+        descarte.add(baralho.pollFirst());
+    }
+
+    public Boolean possivelJogarCarta() {
+        Carta cartaTopo = descarte.getLast();
+        for (Carta c : mao) {
+            if (cartaTopo.combina(c)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void viewAccepted(View new_view) {
         System.out.println("** view: " + new_view);
         view = new_view;
+    }
+
+    public Boolean isMeuTurno() {
+        return turno == idMeuTurno;
     }
 
     public void receive(Message msg) {
@@ -146,34 +169,43 @@ public class Jogador implements Receiver {
         System.out.println(line);
 
         if (view != null) {
-            // acho o id da pessoa q mandou a msg
-            int id = view.getMembers().indexOf(msg.getSrc());
+            int id = view.getMembers().indexOf(msg.getSrc());   // id da pessoa q mandou a msg
             if (id == turno) {
                 // aceito a msg
                 // System.out.println("turno");
-                if (conteudo.contains(cmdJogar)) {
+                if (conteudo.contains(cmdcomprarMaoInicial)) {
+                    for (int i=0; i<tamanhoInicialMao; i++) {
+                        baralho.removeFirst();
+                    }
+                }
+                else if (conteudo.contains(cmdComprarCarta)) {
+                    if (baralho.size() == 0) {
+                        // pega a carta do topo do descarte
+                        Carta cartaTopo = descarte.pollLast();
+                        // passa o descarte pro baralho
+                        baralho.addAll(descarte);
+                        descarte.clear();
+                        // adiciona ao descarte a carta topo
+                        descarte.add(cartaTopo);
+                    }
+                    baralho.removeFirst();
+                    System.out.println("Comprou uma carta");
+                }
+                else if (conteudo.contains(cmdJogar)) {
                     // extrair carta da msg
                     String conteudoSplt[] = conteudo.split(" ");
                     String cartaStr = conteudoSplt[1] + " " + conteudoSplt[2];
-                    descarte.add(new Carta(cartaStr));
-                    System.out.println("Descartado "+descarte.get(descarte.size()-1).toString());
-                }
-                else if (conteudo.contains(cmdComprar)) {
-                    System.out.println("nada kkkkkkk");
-
-                    if (baralho.size() == 0) {
-                        baralho = descarte.copy();
-                        descarte.clear();
-                        descarte = baralho.pop(baralho.size()-1);
-                    }
-
+                    Carta cartaJogada = new Carta(cartaStr);
+                    descarte.add(cartaJogada);
+                    System.out.println("Jogada "+cartaJogada.toString());
                 }
                 else if (conteudo.contains(cmdFimTurno)) {
                     turno = (turno + 1) % view.getMembers().size();
+                    System.out.println("Fim de turno, proximo turno: "+turno);
+                    System.out.println(idMeuTurno);
                 }
             }
         }
-
     }
 
     public void prepararState() throws Exception {
@@ -240,7 +272,9 @@ public class Jogador implements Receiver {
     }
 
     private void eventLoop() {
-        BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
+        // BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
+
+        Console cnsl = System.console();
         // tarefas:
         // começar o jogo --> semaforo?
         // circular entre jogadores
@@ -248,24 +282,66 @@ public class Jogador implements Receiver {
         //     checa se jogador nao tem cartas e encerra
 
         while(true) {
-            try {
-                System.out.print("> ");
-                System.out.flush();
-                // Fluxo de enviar mensagem
-                String line=in.readLine();
+
+            // TODO busy waiting
+            // System.out.println(isMeuTurno());
+            if (isMeuTurno()) {
+                // print mao
+                System.out.print("Mao: ");
+                mao.forEach(System.out::println);
+                // print Possibilidades
+                System.out.print("Possibilidades: ");
+                System.out.print(possivelJogarCarta()? "jogar " : " ");
+                System.out.print("comprar ");
+                System.out.println("fimturno");
+
+                // Ler input
+                // String line=in.readLine();
+                String line = cnsl.readLine();
+                if(line.startsWith("quit") || line.startsWith("exit")) { break; }
 
 
-                if(line.startsWith("quit") || line.startsWith("exit")) {
-                    break;
+                if (line.contains("jogar")) {
+                    System.out.println("Carta Topo "+descarte.getLast().toString());
+                    System.out.println("Mao:");
+                    for (int i=0; i<mao.size(); i++) {
+                        System.out.println(i+": "+mao.get(i).toString());
+                    }
+                    // pega o indice da carta da mao
+                    int ind = -1;
+                    while (ind < 0 || ind > mao.size()) {
+                        // line=in.readLine();
+                        line = cnsl.readLine();
+                        ind = Integer.parseInt(line);
+                    }
+                    jogarCarta(ind);
                 }
-                line="[" + user_name + "] " + line;
+                else if (line.contains("comprar")) {
+                    comprarCarta();
+                    System.out.println("Comprada "+mao.getLast().toString());
+                }
+                else if (line.contains("fimturno")) {
+                    passarTurno();
+                }
+            }
 
-                // cria a mensagem e envia pro canal todo
-                Message msg=new ObjectMessage(null, line);
-                channel.send(msg);
-            }
-            catch(Exception e) {
-            }
+
+
+            // try {
+            //     // System.out.print("> ");
+            //     // System.out.flush();
+            //
+            //
+            //
+            //
+            //
+            //     // line="[" + user_name + "] " + line;
+            //     // // cria a mensagem e envia pro canal todo
+            //     // Message msg=new ObjectMessage(null, line);
+            //     // channel.send(msg);
+            // }
+            // catch(Exception e) {
+            // }
         }
     }
 
