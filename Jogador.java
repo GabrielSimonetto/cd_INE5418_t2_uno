@@ -50,24 +50,32 @@ public class Jogador implements Receiver {
     private List<Carta> mao;
     public List<Carta> baralho;
     public List<Carta> descarte;
+    public int turno;
+
+    private View view;
+
+    private final String cmdComprar  = "Comprar";
+    private final String cmdJogar    = "Jogar";
+    private final String cmdFimTurno = "FimTurno";
 
     // TODO Implement this (allow player to enter only in the first phase)
     // private Boolean aptoJogar = false;
 
     private void start() throws Exception {
+        baralho  = new LinkedList<Carta>();
+        descarte = new LinkedList<Carta>();
+        turno = 0;
+
         channel=new JChannel().setReceiver(this);
         channel.connect("UnoParty");
         channel.getState(null, 10000);
 
         if (Util.isCoordinator(channel)) {
-            baralho  = new LinkedList<Carta>();
-            descarte = new LinkedList<Carta>();
             criarBaralho();
             prepararState();
-            // O lider recebe estado null e cria o baralho
-            // setState(baralho)
         }
 
+        jogarCarta(baralho.get(0));
 
         mao = new LinkedList<Carta>();
         // mao = inicializarMao();
@@ -90,6 +98,9 @@ public class Jogador implements Receiver {
     //     return this.baralho.pop()
     // }
 
+
+
+
     private Carta drawNewCard() {
         String command = "drawCard";
         Message msg=new ObjectMessage(null, command);
@@ -99,12 +110,20 @@ public class Jogador implements Receiver {
         return new Carta("1 a");
     }
 
+    public void jogarCarta(Carta carta) {
+        try {
+            String linha = cmdJogar + carta.toString();
+            Message msg=new ObjectMessage(null, linha);
+            channel.send(msg);
+        } catch(Exception e) { }
+    }
+
     private void criarBaralho() {
         baralho.clear();
         for (String cor : cores) {
             for (int i=0; i<=9; i++) {
                 baralho.add(new Carta(i, cor));
-                if (i != 0) {
+                if (i != 0) {   // duas cartas com msm cor e numero, caso seja diferente de 0
                     baralho.add(new Carta(i, cor));
                 }
             }
@@ -114,36 +133,41 @@ public class Jogador implements Receiver {
 
     public void viewAccepted(View new_view) {
         System.out.println("** view: " + new_view);
+        view = new_view;
     }
 
     public void receive(Message msg) {
-        String line=msg.getSrc() + ": " + msg.getObject();
-        System.out.println(line);
-        synchronized(state) {
-            state.add(line);
+        String conteudo = msg.getObject();
+        String line=msg.getSrc() + ": " + conteudo;
+
+        if (view != null) {
+            // acho o id da pessoa q mandou a msg
+            int id = view.getMembers().indexOf(msg.getSrc());
+            if (id == turno) {
+                // aceito a msg
+                if (conteudo.contains(cmdJogar)) {
+                    // extrair carta da msg
+                    
+                    descarte.add()
+                }
+                System.out.println(line);
+            }
         }
 
-        // if "drawCard" && IamLeaderIownTheBaralho{
-        //     return drawCard
-        // }
-    }
-
-    public void getState(OutputStream output) throws Exception {
-        synchronized(state) {
-            Util.objectToStream(state, new DataOutputStream(output));
-        }
     }
 
     public void prepararState() throws Exception {
+        // baralho
         String baralhoStr = "";
         for (Carta carta : baralho) {
             baralhoStr += carta.toString() + ",";
         }
+        // descarte
         String descarteStr = "";
         for (Carta carta : descarte) {
             descarteStr += carta.toString() + ",";
         }
-        int turno = 1;
+        // turno
         String turnoStr = Integer.toString(turno);
 
         synchronized(state) {
@@ -154,16 +178,43 @@ public class Jogador implements Receiver {
         }
     }
 
-    public void setState(InputStream input) throws Exception {
-        // Tem um historico de mensagens
-        // e a gente quer passar: baralho - de quem eh o turno.
-        // List<Carta> + TypeID -- state
+    public void getState(OutputStream output) throws Exception {
+        synchronized(state) {
+            Util.objectToStream(state, new DataOutputStream(output));
+        }
+    }
 
+    public void setState(InputStream input) throws Exception {
         List<String> list=Util.objectFromStream(new DataInputStream(input));
         synchronized(state) {
             state.clear();
             state.addAll(list);
         }
+
+        // baralho
+        baralho.clear();
+        String baralhoStr = state.get(0);
+        if (baralhoStr.length() > 1) {
+            String baralhoStrSeparado[] = baralhoStr.split(",");
+            for (String cartaStr : baralhoStrSeparado) {
+                baralho.add(new Carta(cartaStr));
+            }
+        }
+        // descarte
+        descarte.clear();
+        String descarteStr = state.get(1);
+        if (descarteStr.length() > 1) {
+            String descarteStrSeparado[] = descarteStr.split(",");
+            for (String cartaStr : descarteStrSeparado) {
+                descarte.add(new Carta(cartaStr));
+            }
+        }
+        // Turno
+        String turnoStr = state.get(2);
+        if (turnoStr.length() > 0) {
+            turno = Integer.parseInt(turnoStr);
+        }
+
         System.out.println("received state (" + list.size() + " messages in chat history):");
         list.forEach(System.out::println);
     }
