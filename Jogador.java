@@ -27,11 +27,13 @@ public class Jogador implements Receiver {
     private int turno;
     private int idMeuTurno;
     private View view;
+    private Boolean jogoRodando = true;
 
     private final String cmdComprarCarta        = "ComprarCarta";
     private final String cmdcomprarMaoInicial   = "comprarMaoInicial";
     private final String cmdJogar               = "Jogar";
     private final String cmdFimTurno            = "FimTurno";
+    private final String cmdFimDeJogo           = "FimDeJogo";
 
     // TODO Implement this (allow player to enter only in the first phase)
     // private Boolean aptoJogar = false;
@@ -54,6 +56,7 @@ public class Jogador implements Receiver {
             prepararState();
         }
 
+        // while (! isMeuTurno()) {}
         comprarMaoInicial();
         eventLoop();
         channel.close();
@@ -61,7 +64,7 @@ public class Jogador implements Receiver {
 
     public void comprarMaoInicial() {
         for (int i=0; i<tamanhoInicialMao; i++) {
-            mao.add(baralho.pollFirst());
+            mao.add(baralho.get(i));
         }
         String linha = cmdcomprarMaoInicial;
         sendMacro(linha);
@@ -77,7 +80,7 @@ public class Jogador implements Receiver {
             // adiciona ao descarte a carta topo
             descarte.add(cartaTopo);
         }
-        mao.add(baralho.pollFirst());
+        mao.add(baralho.getFirst());
         String linha = cmdComprarCarta;
         sendMacro(linha);
     }
@@ -86,6 +89,11 @@ public class Jogador implements Receiver {
         Carta carta = mao.get(idMao);
         mao.remove(idMao);
         String linha = cmdJogar +" "+ carta.toString();
+        sendMacro(linha);
+    }
+
+    public void acabarJogo() {
+        String linha = cmdFimDeJogo;
         sendMacro(linha);
     }
 
@@ -99,6 +107,7 @@ public class Jogador implements Receiver {
             Message msg=new ObjectMessage(null, linha);
             channel.send(msg);
             System.out.println("mandando "+ linha);
+            prepararState();
         } catch(Exception e) { }
     }
 
@@ -219,6 +228,10 @@ public class Jogador implements Receiver {
                     System.out.println("Fim de turno, proximo turno: "+turno);
                     System.out.println(idMeuTurno); //TODO colocar mensagem bonitinha com operador ternario
                 }
+                else if (conteudo.contains(cmdFimDeJogo)) {
+                    System.out.println("O jogo acabou! E eu, " + msg.getSrc() + " venci! Muhahah");
+                    jogoRodando = false;
+                }
             }
         }
     }
@@ -283,7 +296,7 @@ public class Jogador implements Receiver {
         }
 
         System.out.println("received state (" + list.size() + " messages in chat history):");
-        // list.forEach(System.out::println);
+        list.forEach(System.out::println);
     }
 
     private void eventLoop() {
@@ -291,7 +304,7 @@ public class Jogador implements Receiver {
 
         Console cnsl = System.console();
 
-        while(true) {
+        while(jogoRodando) {
             // TODO busy waiting
             // System.out.println(isMeuTurno());
 
@@ -335,41 +348,15 @@ public class Jogador implements Receiver {
                 else if (line.contains("fimturno")) {
                     passarTurno();
                 }
+
+                Boolean jogoAcabou = (mao.size() == 0);
+                if (jogoAcabou) {
+                    acabarJogo();
+                    break;
+                }
             }
-
-
-
-            // try {
-            //     // System.out.print("> ");
-            //     // System.out.flush();
-            //
-            //
-            //
-            //
-            //
-            //     // line="[" + user_name + "] " + line;
-            //     // // cria a mensagem e envia pro canal todo
-            //     // Message msg=new ObjectMessage(null, line);
-            //     // channel.send(msg);
-            // }
-            // catch(Exception e) {
-            // }
         }
     }
-
-    // TODO: aptoJogar shenanigans esperando roles.
-    // private void esperaInicioLoop() {
-    //     BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
-    //     while(true) {
-    //         try {
-    //             synchronized(state) {
-
-
-    //             }
-    //         }
-    //     }
-    // }
-
 
     public static void main(String[] args) throws Exception {
         new Jogador().start();
