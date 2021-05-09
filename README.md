@@ -42,6 +42,9 @@ Se voce quiser rodar algo ja compilado, use `make run`
 [x] - ver como o jogo termina
 [x] - terminar o jogo (mostra VENCEDOR e reinicia o drawing de mao)
 [ ] - TODO busy waiting
+[ ] - baralho eh bastante esquisitao
+    - ao comprar uma mao cheia o proximo jogador vai ter quase todas as cartas iguais
+    - mas se vc comprar cartas individuais ele vai ter soh a ultima carta comprada como repetida
 
 [ ] - tirar o simple chat do trabalho e remover comentarios
 

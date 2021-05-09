@@ -35,8 +35,6 @@ public class Jogador implements Receiver {
     private final String cmdFimTurno            = "FimTurno";
     private final String cmdFimDeJogo           = "FimDeJogo";
 
-    // TODO Implement this (allow player to enter only in the first phase)
-    // private Boolean aptoJogar = false;
 
     private void start() throws Exception {
         baralho  = new LinkedList<Carta>();
@@ -56,7 +54,7 @@ public class Jogador implements Receiver {
             prepararState();
         }
 
-        // while (! isMeuTurno()) {}
+        while (! isMeuTurno()) {}
         comprarMaoInicial();
         eventLoop();
         channel.close();
@@ -225,6 +223,9 @@ public class Jogador implements Receiver {
                 }
                 else if (conteudo.contains(cmdFimTurno)) {
                     turno = (turno + 1) % view.getMembers().size();
+                    // try  {
+                    //     channel.getState(null, 10000);
+                    // } catch(Exception e) { }
                     System.out.println("Fim de turno, proximo turno: "+turno);
                     System.out.println(idMeuTurno); //TODO colocar mensagem bonitinha com operador ternario
                 }
