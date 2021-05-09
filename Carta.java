@@ -1,4 +1,5 @@
-package INE5418Uno;
+// package INE5418Uno;
+package uno;
 
 public class Carta {
     private int numero;
@@ -15,14 +16,14 @@ public class Carta {
         this.cor    = separados[1];
     }
 
+    public Boolean combina(Carta c) {
+        return (c.numero == this.numero) || (c.cor == this.cor);
+    }
+
     public int    getNumero() { return this.numero; }
     public String getCor()    { return this.cor; }
 
     public String toString() {
         return (this.numero + " " + this.cor);
-    }
-
-    public static void main(String[] args) {
-        System.out.println("nada");
     }
 }

@@ -1,5 +1,11 @@
 # O INCRIVEL UNO
 
+## Para rodar:
+
+Se voce quiser recompilar use `make all`
+Se voce quiser rodar algo ja compilado, use `make run`
+
+
 ## TODO:
 
 - [ ] Programar cartas 1 a 9 com 4 naipes
