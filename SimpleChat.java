@@ -50,6 +50,7 @@ public class SimpleChat implements Receiver {
     private void eventLoop() {
         BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
         while(true) {
+            // System.out.println("AAA");
             try {
                 System.out.print("> "); System.out.flush();
                 String line=in.readLine().toLowerCase();

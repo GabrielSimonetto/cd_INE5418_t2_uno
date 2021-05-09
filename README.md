@@ -38,6 +38,13 @@ Se voce quiser rodar algo ja compilado, use `make run`
 [x] - Consertar se a pessoa que tem o turno sair. (crasha)
 [x] - Se dono sai e ta na segunda pessoa ela fica com o turno indefinidamente
 
+[x] - ocultar o baralho quando uma pessoa entra.
+- ver como o jogo termina
+- terminar o jogo (mostra VENCEDOR e reinicia o drawing de mao)
+[ ] - TODO busy waiting
+
+[ ] - tirar o simple chat do trabalho e remover comentarios
+
 ## ideias
 
 - toda vez que rodar o turno, junto com a mão, mostrar o topo do discarte

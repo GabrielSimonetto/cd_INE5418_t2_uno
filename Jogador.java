@@ -283,23 +283,18 @@ public class Jogador implements Receiver {
         }
 
         System.out.println("received state (" + list.size() + " messages in chat history):");
-        list.forEach(System.out::println);
+        // list.forEach(System.out::println);
     }
 
     private void eventLoop() {
         // BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
 
         Console cnsl = System.console();
-        // tarefas:
-        // começar o jogo --> semaforo?
-        // circular entre jogadores
-        //     jogador joga carta OU pesca uma carta
-        //     checa se jogador nao tem cartas e encerra
 
         while(true) {
-
             // TODO busy waiting
             // System.out.println(isMeuTurno());
+
             if (isMeuTurno()) {
                 // print mao
                 System.out.println("\nCarta Topo "+descarte.getLast().toString());
