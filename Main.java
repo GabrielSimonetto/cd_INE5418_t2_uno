@@ -5,10 +5,18 @@ import java.io.*;
 import java.util.List;
 import java.util.LinkedList;
 
-public class SimpleChat implements Receiver {
+public class Jogador implements Receiver {
     JChannel channel;
     String user_name=System.getProperty("user.name", "n/a");
     final List<String> state=new LinkedList<>();
+
+    private void start() throws Exception {
+        channel=new JChannel().setReceiver(this);
+        channel.connect("ChatCluster");
+        channel.getState(null, 10000);
+        eventLoop();
+        channel.close();
+    }
 
     public void viewAccepted(View new_view) {
         System.out.println("** view: " + new_view);
@@ -38,19 +46,9 @@ public class SimpleChat implements Receiver {
         list.forEach(System.out::println);
     }
 
-
-    private void start() throws Exception {
-        channel=new JChannel().setReceiver(this);
-        channel.connect("ChatCluster");
-        channel.getState(null, 10000);
-        eventLoop();
-        channel.close();
-    }
-
     private void eventLoop() {
         BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
         while(true) {
-            // System.out.println("AAA");
             try {
                 System.out.print("> "); System.out.flush();
                 String line=in.readLine().toLowerCase();
@@ -68,6 +66,6 @@ public class SimpleChat implements Receiver {
 
 
     public static void main(String[] args) throws Exception {
-        new SimpleChat().start();
+        new Jogador().start();
     }
 }

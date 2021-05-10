@@ -5,7 +5,7 @@ import java.io.*;
 import java.util.List;
 import java.util.LinkedList;
 
-public class SimpleChat implements Receiver {
+public class SimpleChat2 implements Receiver {
     JChannel channel;
     String user_name=System.getProperty("user.name", "n/a");
     final List<String> state=new LinkedList<>();
@@ -43,6 +43,11 @@ public class SimpleChat implements Receiver {
         channel=new JChannel().setReceiver(this);
         channel.connect("ChatCluster");
         channel.getState(null, 10000);
+
+        if(Util.isCoordinator(channel)) {
+            System.out.println("Liderr");
+        }
+
         eventLoop();
         channel.close();
     }
@@ -50,7 +55,6 @@ public class SimpleChat implements Receiver {
     private void eventLoop() {
         BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
         while(true) {
-            // System.out.println("AAA");
             try {
                 System.out.print("> "); System.out.flush();
                 String line=in.readLine().toLowerCase();
@@ -68,6 +72,6 @@ public class SimpleChat implements Receiver {
 
 
     public static void main(String[] args) throws Exception {
-        new SimpleChat().start();
+        new SimpleChat2().start();
     }
 }
