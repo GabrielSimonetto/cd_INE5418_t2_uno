@@ -113,7 +113,8 @@ public class Jogador implements Receiver {
         for (String cor : cores) {
             for (int i=0; i<=9; i++) {
                 baralho.add(new Carta(i, cor));
-                if (i != 0) {   // duas cartas com msm cor e numero, caso seja diferente de 0
+                // duas cartas com msm cor e numero, caso seja diferente de 0
+                if (i != 0) {
                     baralho.add(new Carta(i, cor));
                 }
             }
@@ -134,11 +135,11 @@ public class Jogador implements Receiver {
     }
 
     public Boolean cartaInvalida(int indice_carta) {
-        Carta cartaTopo = descarte.getLast();
         if (indice_carta < 0 || indice_carta >= mao.size() ) {
-            //todo maybe do it under
             return true;
         }
+
+        Carta cartaTopo = descarte.getLast();
         Carta cartaJogada = mao.get(indice_carta);
         if (cartaTopo.combina(cartaJogada)) {
             return false;
@@ -172,9 +173,6 @@ public class Jogador implements Receiver {
                 semTurno.release(1);
             }
         }
-
-
-        // System.out.println("** OLD VIEW view: " + view);
         System.out.println("** NEW VIEW view: " + new_view);
         view = new_view;
     }
@@ -189,7 +187,8 @@ public class Jogador implements Receiver {
         System.out.println(line);
 
         if (view != null) {
-            int id = view.getMembers().indexOf(msg.getSrc());   // id da pessoa q mandou a msg
+            // id da pessoa q mandou a msg
+            int id = view.getMembers().indexOf(msg.getSrc());
             if (id == turno) {
                 // aceito a msg
                 // System.out.println("turno");
@@ -221,12 +220,8 @@ public class Jogador implements Receiver {
                 }
                 else if (conteudo.contains(cmdFimTurno)) {
                     turno = (turno + 1) % view.getMembers().size();
-                    // try  {
-                    //     channel.getState(null, 10000);
-                    // } catch(Exception e) { }
                     System.out.println("Fim de turno, proximo turno: "+turno);
                     semTurno.release(1);
-                    // System.out.println(idMeuTurno); //TODO colocar mensagem bonitinha com operador ternario
                 }
                 else if (conteudo.contains(cmdFimDeJogo)) {
                     System.out.println("O jogo acabou! E eu, " + msg.getSrc() + " venci! Muhahah");
@@ -294,17 +289,9 @@ public class Jogador implements Receiver {
         if (turnoStr.length() > 0) {
             turno = Integer.parseInt(turnoStr);
         }
-
-        System.out.println("received state (" + list.size() + " ):");
-        // list.forEach(System.out::println);
-        System.out.println("Baralho : "+list.get(0));
-        System.out.println("Descarte: "+list.get(1));
-        System.out.println("Turno   : "+list.get(2));
     }
 
     private void eventLoop() throws Exception {
-        // BufferedReader in=new BufferedReader(new InputStreamReader(System.in));
-
         Console cnsl = System.console();
 
         while(jogoRodando) {
@@ -324,15 +311,11 @@ public class Jogador implements Receiver {
                     System.out.println("fimturno");
                 }
 
-                // Ler input
-                // String line=in.readLine();
                 String line = cnsl.readLine();
                 if(line.startsWith("sair") || line.startsWith("exit")) {
                     jogoRodando = false;
                     break;
                 }
-
-
                 if (line.contains("comprarMao") && mao.size() == 0) {
                     comprarMaoInicial();
                 }
@@ -346,7 +329,6 @@ public class Jogador implements Receiver {
                         // pega o indice da carta da mao
                         int ind = -1;
                         while (cartaInvalida(ind)) {
-                            // line=in.readLine();
                             System.out.println("Digite uma carta valida");
                             line = cnsl.readLine();
                             ind = Integer.parseInt(line);
@@ -361,7 +343,6 @@ public class Jogador implements Receiver {
                         passarTurno();
                     }
                 }
-
                 // jogo acabou
                 if (mao.size() == 0) {
                     acabarJogo();
