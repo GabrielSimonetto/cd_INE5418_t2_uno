@@ -52,7 +52,6 @@ public class Jogador implements Receiver {
         if (Util.isCoordinator(channel)) {
             criarBaralho();
             prepararState();
-            // primeiro turno precisa liberar o semaforo
             semTurno.release(1);
         }
 
@@ -148,35 +147,34 @@ public class Jogador implements Receiver {
     }
 
     public void viewAccepted(View new_view) {
-        System.out.println("** OLD VIEW view: " + view);
-
         Boolean pessoa_saiu = (
             (view != null) &&
             new_view.getMembers().size() < view.getMembers().size()
         );
-        if (pessoa_saiu) {
-            Address my_own_address = view.getMembers().get(idMeuTurno);
 
+        if (pessoa_saiu) {
+            // pego o endereco da antiga view
+            Address my_own_address = view.getMembers().get(idMeuTurno);
+            // atualizo idMeuTurno com a nova view
             for (int i=0; i<new_view.getMembers().size(); i++) {
                 Address this_member = new_view.getMembers().get(i);
                 if (my_own_address.compareTo(this_member) == 0) {
                     idMeuTurno = i;
                 }
             }
-
-            for (int i=0; i<view.getMembers().size(); i++) {
-                if (new_view.getMembers().size() <= i) {
-                    turno = 0;
-                    break;
-                }
-                // se der diferente antes quem saiu nao foi o ultimo,
-                // o turno fica igual e encerramos a operação
-                if (view.getMembers().get(i).compareTo(new_view.getMembers().get(i)) != 0) {
-                    break;
-                }
+            // turno de alguem que saiu, e esta inalcancavel agora eh zerado
+            if (turno >= new_view.getMembers().size()) {
+                turno = 0;
+                System.out.println("Jogador saiu, turno passado para "+turno);
+            }
+            // se for meu turno
+            if (isMeuTurno()) {
+                semTurno.release(1);
             }
         }
 
+
+        // System.out.println("** OLD VIEW view: " + view);
         System.out.println("** NEW VIEW view: " + new_view);
         view = new_view;
     }
@@ -297,7 +295,7 @@ public class Jogador implements Receiver {
             turno = Integer.parseInt(turnoStr);
         }
 
-        System.out.println("received state (" + list.size() + " messages in chat history):");
+        System.out.println("received state (" + list.size() + " ):");
         // list.forEach(System.out::println);
         System.out.println("Baralho : "+list.get(0));
         System.out.println("Descarte: "+list.get(1));
@@ -312,52 +310,60 @@ public class Jogador implements Receiver {
         while(jogoRodando) {
             semTurno.acquire(1);
             while (isMeuTurno()) {
-                if (mao.size() == 0) {
-                    comprarMaoInicial();
-                }
-
                 // print mao
                 System.out.println("\nCarta Topo "+descarte.getLast().toString());
                 System.out.print("Mao: ");
                 mao.forEach(System.out::println);
                 // print Possibilidades
                 System.out.print("Possibilidades: ");
-                System.out.print(possivelJogarCarta() ? "jogar " : " ");
-                System.out.print("comprar ");
-                System.out.println("fimturno");
+                if (mao.size() == 0) {
+                    System.out.println("comprarMao");
+                } else {
+                    System.out.print(possivelJogarCarta() ? "jogar " : " ");
+                    System.out.print("comprar ");
+                    System.out.println("fimturno");
+                }
 
                 // Ler input
                 // String line=in.readLine();
                 String line = cnsl.readLine();
-                if(line.startsWith("quit") || line.startsWith("exit")) { break; }
+                if(line.startsWith("sair") || line.startsWith("exit")) {
+                    jogoRodando = false;
+                    break;
+                }
 
 
-                if (line.contains("jogar") && possivelJogarCarta()) {
-                    System.out.println("\nCarta Topo "+descarte.getLast().toString());
-                    System.out.println("Mao:");
-                    for (int i=0; i<mao.size(); i++) {
-                        System.out.println(i+": "+mao.get(i).toString());
+                if (line.contains("comprarMao") && mao.size() == 0) {
+                    comprarMaoInicial();
+                }
+                else {
+                    if (line.contains("jogar") && possivelJogarCarta()) {
+                        System.out.println("\nCarta Topo "+descarte.getLast().toString());
+                        System.out.println("Mao:");
+                        for (int i=0; i<mao.size(); i++) {
+                            System.out.println(i+": "+mao.get(i).toString());
+                        }
+                        // pega o indice da carta da mao
+                        int ind = -1;
+                        while (cartaInvalida(ind)) {
+                            // line=in.readLine();
+                            System.out.println("Digite uma carta valida");
+                            line = cnsl.readLine();
+                            ind = Integer.parseInt(line);
+                        }
+                        jogarCarta(ind);
                     }
-                    // pega o indice da carta da mao
-                    int ind = -1;
-                    while (cartaInvalida(ind)) {
-                        // line=in.readLine();
-                        System.out.println("Digite uma carta valida");
-                        line = cnsl.readLine();
-                        ind = Integer.parseInt(line);
+                    else if (line.contains("comprar")) {
+                        comprarCarta();
+                        System.out.println("Comprada "+mao.getLast().toString());
                     }
-                    jogarCarta(ind);
-                }
-                else if (line.contains("comprar")) {
-                    comprarCarta();
-                    System.out.println("Comprada "+mao.getLast().toString());
-                }
-                else if (line.contains("fimturno")) {
-                    passarTurno();
+                    else if (line.contains("fimturno")) {
+                        passarTurno();
+                    }
                 }
 
-                Boolean jogoAcabou = (mao.size() == 0);
-                if (jogoAcabou) {
+                // jogo acabou
+                if (mao.size() == 0) {
                     acabarJogo();
                     break;
                 }
@@ -368,5 +374,4 @@ public class Jogador implements Receiver {
     public static void main(String[] args) throws Exception {
         new Jogador().start();
     }
-
 }
