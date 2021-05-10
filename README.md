@@ -2,5 +2,8 @@
 
 ## Para rodar:
 
-Se voce quiser recompilar use `make all`
+Na sua primeira vez compilando use `make build`
+
+Se voce quiser recompilar use `make all` (make clean + make build)
+
 Se voce quiser rodar algo ja compilado, use `make run`
